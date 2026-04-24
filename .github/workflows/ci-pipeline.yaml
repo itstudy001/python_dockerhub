@@ -49,7 +49,12 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           # 1. 사용할 환경 변수들을 등록합니다.
           envs: DOCKER_USERNAME, DOCKER_REPO, DOCKER_TOKEN
-          script: |
+          debug: true  # <--- 이 설정을 추가해서 상세 로그를 보세요!
+          timeout: 10s # 접속 시도 타임아웃 단축
+          command_timeout: 1m
+          script: |  
+            echo "Successfully Connected!"
+            
             # 변수 조합 확인 (디버깅 로그)
             echo "Starting deployment for: $DOCKER_USERNAME/$DOCKER_REPO"
             
