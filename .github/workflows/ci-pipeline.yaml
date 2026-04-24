@@ -52,13 +52,13 @@ jobs:
           debug: true  # <--- 이 설정을 추가해서 상세 로그를 보세요!
           timeout: 10s # 접속 시도 타임아웃 단축
           command_timeout: 1m
+          request_pty: true
+          use_insecure_cipher: true
           script: |  
             echo "Successfully Connected!"
             
             # 변수 조합 확인 (디버깅 로그)
             echo "Starting deployment for: $DOCKER_USERNAME/$DOCKER_REPO"
-            
-            
         # 0. GitHub Secrets를 SSH 환경 변수로 매핑합니다.
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
