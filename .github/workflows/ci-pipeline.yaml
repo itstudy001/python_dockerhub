@@ -57,8 +57,29 @@ jobs:
           script: |  
             echo "Successfully Connected!"
             
-            # 변수 조합 확인 (디버깅 로그)
+            # 1.변수 조합 확인 (디버깅 로그) 및 로그인
             echo "Starting deployment for: $DOCKER_USERNAME/$DOCKER_REPO"
+            echo "${DOCKER_TOKEN}" | sudo docker login -u "${DOCKER_USERNAME}" --password-stdin
+
+            # 2. 최신 이미지 가져오기
+            sudo docker pull $DOCKER_USERNAME/$DOCKER_REPO:latest
+            
+            # 3. 기존 컨테이너 안전하게 중지 및 삭제
+            # 2>/dev/null은 에러 메시지를 숨기고, || true는 실패해도 다음 단계를 진행하게 합니다.
+            sudo docker stop my-app-container 2>/dev/null || true
+            sudo docker rm my-app-container 2>/dev/null || true
+            
+            # 4. 새 컨테이너 실행
+            # 5000번 포트로 돌아가는 Flask/Node 앱을 80포트로 연결하는 예시입니다.
+            sudo docker run -d \
+              --name my-app-container \
+              -p 80:5000 \
+              --restart always \
+              $DOCKER_USERNAME/$DOCKER_REPO:latest
+            
+            # 5. 불필요한 이미지(Dangling images) 정리
+            sudo docker image prune -f
+
         # 0. GitHub Secrets를 SSH 환경 변수로 매핑합니다.
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
