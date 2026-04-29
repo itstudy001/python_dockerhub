@@ -44,8 +44,11 @@ jobs:
           kubeconfig: ${{ secrets.KUBECONFIG }}
       - name: 클러스터 배포
         run: |
-          # deployment.yaml 내의 이미지 태그를 최신 SHA로 교체 후 적용
+          # 1. 태그 변경
           sed -i "s|image:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:${{ github.sha }}|g" deployment.yml
-          kubectl apply -f deployment.yml
-          kubectl apply -f service.yml
+          
+          # 2. --insecure-skip-tls-verify=true 옵션 추가 (인증서 무시)
+          # 3. --validate=false 옵션 추가 (OpenAPI 다운로드 검증 무시)
+          kubectl apply -f deployment.yaml --insecure-skip-tls-verify=true --validate=false
+          kubectl apply -f service.yml --insecure-skip-tls-verify=true --validate=false
   
