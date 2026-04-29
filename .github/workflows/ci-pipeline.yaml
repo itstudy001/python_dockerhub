@@ -49,6 +49,6 @@ jobs:
           
           # 2. --insecure-skip-tls-verify=true 옵션 추가 (인증서 무시)
           # 3. --validate=false 옵션 추가 (OpenAPI 다운로드 검증 무시)
-          kubectl apply -f deployment.yaml --insecure-skip-tls-verify=true --validate=false
+          kubectl apply -f deployment.yml --insecure-skip-tls-verify=true --validate=false
           kubectl apply -f service.yml --insecure-skip-tls-verify=true --validate=false
   
