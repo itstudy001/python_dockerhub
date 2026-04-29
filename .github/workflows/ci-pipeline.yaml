@@ -34,54 +34,18 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: build and release to DockerHub
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_REPO }} .
-          docker tag ${{ secrets.DOCKERHUB_REPO }}:latest ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to EC2 via SSH
-        uses: appleboy/ssh-action@v1.0.3
+          IMAGE_TAG=${{ github.sha }}
+          docker build -t ${{ secrets.DOCKERHUB_REPO }}:$IMAGE_TAG .
+          docker push ${{ secrets.DOCKERHUB_REPO }}:$IMAGE_TAG
+      - name: Kubernetes 컨텍스트 설정
+        uses: azure/k8s-set-context@v3
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          # 1. 사용할 환경 변수들을 등록합니다.
-          envs: DOCKER_USERNAME, DOCKER_REPO, DOCKER_TOKEN
-          debug: true  # <--- 이 설정을 추가해서 상세 로그를 보세요!
-          timeout: 10s # 접속 시도 타임아웃 단축
-          command_timeout: 1m
-          request_pty: true
-          use_insecure_cipher: true
-          script: |  
-            echo "Successfully Connected!"
-            
-            # 1.변수 조합 확인 (디버깅 로그) 및 로그인
-            echo "Starting deployment for: $DOCKER_USERNAME/$DOCKER_REPO"
-            echo "${DOCKER_TOKEN}" | sudo docker login -u "${DOCKER_USERNAME}" --password-stdin
-
-            # 2. 최신 이미지 가져오기
-            sudo docker pull $DOCKER_USERNAME/$DOCKER_REPO:latest
-            
-            # 3. 기존 컨테이너 안전하게 중지 및 삭제
-            # 2>/dev/null은 에러 메시지를 숨기고, || true는 실패해도 다음 단계를 진행하게 합니다.
-            sudo docker stop my-app-container 2>/dev/null || true
-            sudo docker rm my-app-container 2>/dev/null || true
-            
-            # 4. 새 컨테이너 실행
-            # 5000번 포트로 돌아가는 Flask/Node 앱을 80포트로 연결하는 예시입니다.
-            sudo docker run -d \
-              --name my-app-container \
-              -p 80:5000 \
-              --restart always \
-              $DOCKER_USERNAME/$DOCKER_REPO:latest
-            
-            # 5. 불필요한 이미지(Dangling images) 정리
-            sudo docker image prune -f
-
-        # 0. GitHub Secrets를 SSH 환경 변수로 매핑합니다.
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
-          DOCKER_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBECONFIG }}
+      - name: 클러스터 배포
+        run: |
+          # deployment.yaml 내의 이미지 태그를 최신 SHA로 교체 후 적용
+          sed -i "s|image:.*|image: ${{ secrets.DOCKERHUB_REPO }}:${{ github.sha }}|g" k8s/deployment.yaml
+          kubectl apply -f k8s/deployment.yml
+          kubectl apply -f k8s/service.yml
+  

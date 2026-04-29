@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flaskweb-deployment
+  labels:
+    app: flaskweb
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: flaskweb
+  template:
+    metadata:
+      labels:
+        app: flaskweb
+    spec:
+      containers:
+      - name: flaskweb-container
+        image: ggnagpae1/flaskweb:latest
+        ports:
+        - containerPort: 5000
+        # 환경 변수가 필요한 경우 아래 주석을 해제하고 추가하세요
+        # env:
+        # - name: ENV_NAME
+        #   value: "production"
